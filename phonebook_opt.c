@@ -22,6 +22,17 @@
 static entry *entryHead,*entry_pool;
 static pthread_t threads[THREAD_NUM];
 static thread_arg *thread_args[THREAD_NUM];
+char *map;
+off_t file_size;
+
+static inline int strncasecmp_a(const char *s1,const char *s2,size_t n)
+{
+    int c=0;
+    for (int i=0; i<n && c==0; i++) {
+        c = tolower(*s1++) - tolower(*s2++);
+    }
+    return c;
+}
 
 entry *findName(char lastname[], entry *pHead)
 {
@@ -109,9 +120,9 @@ entry *phonebook_append(char *s)
     if (text_align(s, ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1)
         return NULL;
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
-    off_t file_size = fsize(ALIGN_FILE);
+    file_size = fsize(ALIGN_FILE);
     /* Allocate the resource at first */
-    char *map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     assert(map && "mmap error");
     entry_pool = (entry *) malloc(sizeof(entry) * file_size / MAX_LAST_NAME_SIZE);
     assert(entry_pool && "entry_pool error");
@@ -146,7 +157,6 @@ entry *phonebook_append(char *s)
     }
 
 
-    munmap(map, file_size);
     close(fd);
     pthread_setconcurrency(0);
     /* Return head of linked list */
@@ -170,6 +180,7 @@ void phonebook_free()
     for (int i = 0; i < THREAD_NUM; i++)
         free(thread_args[i]);
 
+    munmap(map, file_size);
 }
 
 static double diff_in_second(struct timespec t1, struct timespec t2)
