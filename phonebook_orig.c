@@ -5,6 +5,8 @@
 
 #include "phonebook_orig.h"
 
+static entry* entryHead;
+
 /* original version */
 entry *findName(char lastname[], entry *pHead)
 {
@@ -25,4 +27,50 @@ entry *append(char lastName[], entry *e)
     e->pNext = NULL;
 
     return e;
+}
+
+void phonebook_init(void *option)
+{
+    if (!option) {
+    }
+    entryHead = (entry *) malloc(sizeof(entry));
+    entryHead->pNext = NULL;
+}
+
+entry *phonebook_append(char *s)
+{
+    FILE *fp = fopen(s,"r");
+    if (!fp) {
+        printf("cannot open the file\n");
+        return NULL;
+    }
+    entry *e = entryHead;
+    char line[MAX_LAST_NAME_SIZE];
+    int i=0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        while (line[i] != '\0')
+            i++;
+        line[i - 1] = '\0';
+        i = 0;
+        e = append(line, e);
+    }
+
+    fclose(fp);
+    return entryHead;
+}
+
+entry *phonebook_findName(char *s)
+{
+    return findName(s, entryHead);
+}
+
+void phonebook_free()
+{
+    entry *e;
+    while (entryHead) {
+        e = entryHead;
+        entryHead = entryHead->pNext;
+        free(e);
+    }
 }

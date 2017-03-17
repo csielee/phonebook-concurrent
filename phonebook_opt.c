@@ -1,10 +1,27 @@
+#define  _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <ctype.h>
+#include <assert.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "phonebook_opt.h"
 #include "debug.h"
+#include "text_align.h"
+
+#define ALIGN_FILE "align.txt"
+
+#ifndef THREAD_NUM
+#define THREAD_NUM 4
+#endif
+
+static entry *entryHead,*entry_pool;
+static pthread_t threads[THREAD_NUM];
+static thread_arg *thread_args[THREAD_NUM];
 
 entry *findName(char lastname[], entry *pHead)
 {
@@ -24,9 +41,9 @@ entry *findName(char lastname[], entry *pHead)
     return NULL;
 }
 
-thread_arg *createThead_arg(char *data_begin, char *data_end,
-                            int threadID, int numOfThread,
-                            entry *entryPool)
+thread_arg *createThread_arg(char *data_begin, char *data_end,
+                             int threadID, int numOfThread,
+                             entry *entryPool)
 {
     thread_arg *new_arg = (thread_arg *) malloc(sizeof(thread_arg));
 
@@ -79,6 +96,80 @@ void show_entry(entry *pHead)
         printf("%s", pHead->lastName);
         pHead = pHead->pNext;
     }
+}
+
+void phonebook_init(void *option)
+{
+    if (!option) {
+    }
+}
+
+entry *phonebook_append(char *s)
+{
+    if (text_align(s, ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1)
+        return NULL;
+    int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
+    off_t file_size = fsize(ALIGN_FILE);
+    /* Allocate the resource at first */
+    char *map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    assert(map && "mmap error");
+    entry_pool = (entry *) malloc(sizeof(entry) * file_size / MAX_LAST_NAME_SIZE);
+    assert(entry_pool && "entry_pool error");
+
+    /* Prepare for mutli-threading */
+    pthread_setconcurrency(THREAD_NUM + 1);
+    for (int i = 0; i < THREAD_NUM; i++)
+        thread_args[i] = createThread_arg(map + MAX_LAST_NAME_SIZE * i,map + file_size, i,THREAD_NUM, entry_pool + i);
+
+    /* Deliver the jobs to all thread and wait for completing  */
+
+    for (int i = 0; i < THREAD_NUM; i++)
+        pthread_create(&threads[i], NULL, (void*)&append, (void*)thread_args[i]);
+
+    for (int i = 0; i < THREAD_NUM; i++)
+        pthread_join(threads[i], NULL);
+
+    /* Connect the linked list of each thread */
+    entry *e;
+    for (int i = 0; i < THREAD_NUM; i++) {
+        if (i == 0) {
+            entryHead = thread_args[i]->lEntry_head->pNext;
+            DEBUG_LOG("Connect %d head string %s %p\n", i, entryHead->lastName, thread_args[i]->data_begin);
+        } else {
+            e->pNext = thread_args[i]->lEntry_head->pNext;
+            DEBUG_LOG("Connect %d head string %s %p\n", i,e->pNext->last, thread_args[i]->data_begin);
+        }
+
+        e = thread_args[i]->lEntry_tail;
+        DEBUG_LOG("Connect %d tail string %s %p\n", i, e->lastName, thread_args[i]->data_begin);
+        DEBUG_LOG("round %d\n", i);
+    }
+
+
+    munmap(map, file_size);
+    close(fd);
+    pthread_setconcurrency(0);
+    /* Return head of linked list */
+    return entryHead;
+}
+
+entry *phonebook_findName(char *s)
+{
+    return findName(s, entryHead);
+}
+
+void phonebook_free()
+{
+    entry *e = entryHead;
+    while (e) {
+        free(e->dtl);
+        e = e->pNext;
+    }
+
+    free(entry_pool);
+    for (int i = 0; i < THREAD_NUM; i++)
+        free(thread_args[i]);
+
 }
 
 static double diff_in_second(struct timespec t1, struct timespec t2)
