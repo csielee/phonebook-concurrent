@@ -113,12 +113,12 @@ void phonebook_init(void *option)
 {
     if (!option) {
     }
+    if (text_align("./dictionary/words.txt", ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1)
+        return NULL;
 }
 
 entry *phonebook_append(char *s)
 {
-    if (text_align(s, ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1)
-        return NULL;
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
     file_size = fsize(ALIGN_FILE);
     /* Allocate the resource at first */
