@@ -70,8 +70,6 @@ perf-set:
 	sudo sh -c " echo 0 > /proc/sys/kernel/perf_event_paranoid"
 	sudo sh -c " echo 0 > /proc/sys/kernel/kptr_restrict"
 
-
-
 .PHONY: clean
 clean:
 	$(RM) $(EXEC) *.o perf.* \

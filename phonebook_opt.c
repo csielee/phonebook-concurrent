@@ -135,7 +135,7 @@ entry *phonebook_append(char *s)
     /* Deliver the jobs to all thread and wait for completing  */
 
     for (int i = 0; i < THREAD_NUM; i++)
-        pthread_create(&threads[i], NULL, (void*)&append, (void*)thread_args[i]);
+        pthread_create(&threads[i], NULL, (void *)&append, (void *)thread_args[i]);
 
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_join(threads[i], NULL);
