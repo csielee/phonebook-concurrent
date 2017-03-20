@@ -22,8 +22,8 @@
 static entry *entryHead,*entry_pool;
 static pthread_t threads[THREAD_NUM];
 static thread_arg *thread_args[THREAD_NUM];
-char *map;
-off_t file_size;
+static char *map;
+static off_t file_size;
 
 static inline int strncasecmp_a(const char *s1,const char *s2,size_t n)
 {
@@ -34,7 +34,7 @@ static inline int strncasecmp_a(const char *s1,const char *s2,size_t n)
     return c;
 }
 
-entry *findName(char lastname[], entry *pHead)
+static entry *findName(char lastname[], entry *pHead)
 {
     size_t len = strlen(lastname);
     while (pHead) {
@@ -52,9 +52,9 @@ entry *findName(char lastname[], entry *pHead)
     return NULL;
 }
 
-thread_arg *createThread_arg(char *data_begin, char *data_end,
-                             int threadID, int numOfThread,
-                             entry *entryPool)
+static thread_arg *createThread_arg(char *data_begin, char *data_end,
+                                    int threadID, int numOfThread,
+                                    entry *entryPool)
 {
     thread_arg *new_arg = (thread_arg *) malloc(sizeof(thread_arg));
 
@@ -70,7 +70,7 @@ thread_arg *createThread_arg(char *data_begin, char *data_end,
 /**
  * Generate a local linked list in thread.
  */
-void append(void *arg)
+static void append(void *arg)
 {
     struct timespec start, end;
     double cpu_time;
@@ -101,7 +101,7 @@ void append(void *arg)
     pthread_exit(NULL);
 }
 
-void show_entry(entry *pHead)
+static void show_entry(entry *pHead)
 {
     while (pHead) {
         printf("%s", pHead->lastName);
@@ -109,7 +109,7 @@ void show_entry(entry *pHead)
     }
 }
 
-void phonebook_init(void *option)
+static void phonebook_init(void *option)
 {
     if (!option) {
     }
@@ -117,7 +117,7 @@ void phonebook_init(void *option)
         return NULL;
 }
 
-entry *phonebook_append(char *s)
+static entry *phonebook_append(char *s)
 {
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
     file_size = fsize(ALIGN_FILE);
@@ -163,12 +163,12 @@ entry *phonebook_append(char *s)
     return entryHead;
 }
 
-entry *phonebook_findName(char *s)
+static entry *phonebook_findName(char *s)
 {
     return findName(s, entryHead);
 }
 
-void phonebook_free()
+static void phonebook_free()
 {
     entry *e = entryHead;
     while (e) {
@@ -182,6 +182,14 @@ void phonebook_free()
 
     munmap(map, file_size);
 }
+
+/* API */
+struct __PHONEBOOK_API Phonebook = {
+    .init = phonebook_init,
+    .append = phonebook_append,
+    .findName = phonebook_findName,
+    .free = phonebook_free,
+};
 
 static double diff_in_second(struct timespec t1, struct timespec t2)
 {

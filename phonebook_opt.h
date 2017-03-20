@@ -28,8 +28,6 @@ typedef struct __PHONE_BOOK_ENTRY {
     pdetail dtl;
 } entry;
 
-entry *findName(char lastname[], entry *pHead);
-
 typedef struct _thread_argument {
     char *data_begin;
     char *data_end;
@@ -40,18 +38,13 @@ typedef struct _thread_argument {
     entry *lEntry_tail;	/* local entry linked list */
 } thread_arg;
 
-thread_arg *createThread_arg(char *data_begin, char *data_end,
-                             int threadID, int numOfThread,
-                             entry *entryPool);
-
-void append(void *arg);
-
-void show_entry(entry *pHead);
-
-void phonebook_init(void *option);
-entry *phonebook_append(char *s);
-entry *phonebook_findName(char *s);
-void phonebook_free();
+/* API */
+extern struct __PHONEBOOK_API {
+    void (*init)(void *option);
+    entry *(*append)(char *s);
+    entry *(*findName)(char *s);
+    void (*free)();
+} Phonebook;
 
 static double diff_in_second(struct timespec t1, struct timespec t2);
 

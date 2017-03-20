@@ -43,7 +43,8 @@ int main(int argc, char *argv[])
 
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
-    phonebook_init(NULL);
+    //phonebook_init(NULL);
+    Phonebook.init(NULL);
     /* Stop timing */
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time0 = diff_in_second(start, end);
@@ -51,7 +52,8 @@ int main(int argc, char *argv[])
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
     /*append lastname with DICT_FILE*/
-    pHead = phonebook_append(DICT_FILE);
+    //pHead = phonebook_append(DICT_FILE);
+    pHead = Phonebook.append(DICT_FILE);
     /* Stop timing */
     clock_gettime(CLOCK_REALTIME, &end);
 
@@ -61,23 +63,23 @@ int main(int argc, char *argv[])
     /* the givn last name to find */
     char input[MAX_LAST_NAME_SIZE] = "zyxel";
 
-    assert(phonebook_findName(input) &&
+    assert(Phonebook.findName(input) &&
            "Did you implement findName() in " IMPL "?");
-    assert(0 == strcmp(phonebook_findName(input)->lastName, "zyxel"));
+    assert(0 == strcmp(Phonebook.findName(input)->lastName, "zyxel"));
 
 #if defined(__GNUC__)
     __builtin___clear_cache((char *) pHead, (char *) pHead + sizeof(entry));
 #endif
     /* Compute the execution time */
     clock_gettime(CLOCK_REALTIME, &start);
-    phonebook_findName(input);
+    Phonebook.findName(input);
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time2 = diff_in_second(start, end);
 
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
     /* Release memory */
-    phonebook_free();
+    Phonebook.free();
     /* Stop timing */
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time3 = diff_in_second(start, end);

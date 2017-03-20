@@ -8,7 +8,7 @@
 static entry* entryHead;
 
 /* original version */
-entry *findName(char lastname[], entry *pHead)
+static entry *findName(char lastname[], entry *pHead)
 {
     while (pHead) {
         if (strcasecmp(lastname, pHead->lastName) == 0)
@@ -18,7 +18,7 @@ entry *findName(char lastname[], entry *pHead)
     return NULL;
 }
 
-entry *append(char lastName[], entry *e)
+static entry *append(char lastName[], entry *e)
 {
     /* allocate memory for the new entry and put lastName */
     e->pNext = (entry *) malloc(sizeof(entry));
@@ -29,7 +29,7 @@ entry *append(char lastName[], entry *e)
     return e;
 }
 
-void phonebook_init(void *option)
+static void phonebook_init(void *option)
 {
     if (!option) {
     }
@@ -37,7 +37,7 @@ void phonebook_init(void *option)
     entryHead->pNext = NULL;
 }
 
-entry *phonebook_append(char *s)
+static entry *phonebook_append(char *s)
 {
     FILE *fp = fopen(s,"r");
     if (!fp) {
@@ -60,12 +60,12 @@ entry *phonebook_append(char *s)
     return entryHead;
 }
 
-entry *phonebook_findName(char *s)
+static entry *phonebook_findName(char *s)
 {
     return findName(s, entryHead);
 }
 
-void phonebook_free()
+static void phonebook_free()
 {
     entry *e;
     while (entryHead) {
@@ -74,3 +74,11 @@ void phonebook_free()
         free(e);
     }
 }
+
+/* API */
+struct __PHONEBOOK_API Phonebook = {
+    .init = phonebook_init,
+    .append = phonebook_append,
+    .findName = phonebook_findName,
+    .free = phonebook_free,
+};
