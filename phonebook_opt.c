@@ -25,15 +25,6 @@ static thread_arg *thread_args[THREAD_NUM];
 static char *map;
 static off_t file_size;
 
-static inline int strncasecmp_a(const char *s1,const char *s2,size_t n)
-{
-    int c=0;
-    for (int i=0; i<n && c==0; i++) {
-        c = tolower(*s1++) - tolower(*s2++);
-    }
-    return c;
-}
-
 static entry *findName(char lastname[], entry *pHead)
 {
     size_t len = strlen(lastname);
@@ -141,22 +132,20 @@ static entry *phonebook_append(char *s)
         pthread_join(threads[i], NULL);
 
     /* Connect the linked list of each thread */
-    entry *e;
-    for (int i = 0; i < THREAD_NUM; i++) {
-        if (i == 0) {
-            entryHead = thread_args[i]->lEntry_head->pNext;
-            DEBUG_LOG("Connect %d head string %s %p\n", i, entryHead->lastName, thread_args[i]->data_begin);
-        } else {
-            e->pNext = thread_args[i]->lEntry_head->pNext;
-            DEBUG_LOG("Connect %d head string %s %p\n", i,e->pNext->last, thread_args[i]->data_begin);
-        }
+    entryHead = thread_args[0]->lEntry_head->pNext;
+    DEBUG_LOG("Connect 0 head string %s %p\n", entryHead->lastName, thread_args[0]->data_begin);
+    entry *e = thread_args[0]->lEntry_tail;
+    DEBUG_LOG("Connect 0 tail string %s %p\n", e->lastName, thread_args[0]->data_begin);
+    DEBUG_LOG("round 0\n");
+
+    for (int i = 1; i < THREAD_NUM; i++) {
+        e->pNext = thread_args[i]->lEntry_head->pNext;
+        DEBUG_LOG("Connect %d head string %s %p\n", i,e->pNext->last, thread_args[i]->data_begin);
 
         e = thread_args[i]->lEntry_tail;
         DEBUG_LOG("Connect %d tail string %s %p\n", i, e->lastName, thread_args[i]->data_begin);
         DEBUG_LOG("round %d\n", i);
     }
-
-
     close(fd);
     pthread_setconcurrency(0);
     /* Return head of linked list */
