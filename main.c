@@ -43,8 +43,7 @@ int main(int argc, char *argv[])
 
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
-    //phonebook_init(NULL);
-    Phonebook.init(NULL);
+    Phonebook.create();
     /* Stop timing */
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time0 = diff_in_second(start, end);
@@ -52,8 +51,7 @@ int main(int argc, char *argv[])
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
     /*append lastname with DICT_FILE*/
-    //pHead = phonebook_append(DICT_FILE);
-    pHead = Phonebook.append(DICT_FILE);
+    pHead = Phonebook.appendByFile(DICT_FILE);
     /* Stop timing */
     clock_gettime(CLOCK_REALTIME, &end);
 
@@ -90,9 +88,9 @@ int main(int argc, char *argv[])
     fprintf(output, "%lf %lf %lf %lf\n", cpu_time0, cpu_time1, cpu_time2, cpu_time3);
     fclose(output);
 
-    printf("execution time of phonebook_free() : %lf sec\n", cpu_time0);
-    printf("execution time of phonebook_append() : %lf sec\n", cpu_time1);
-    printf("execution time of phonebook_findName() : %lf sec\n", cpu_time2);
-    printf("execution time of phonebook_free() : %lf sec\n", cpu_time3);
+    printf("execution time of phonebook.create() : %lf sec\n", cpu_time0);
+    printf("execution time of phonebook.appendByFile() : %lf sec\n", cpu_time1);
+    printf("execution time of phonebook.findName() : %lf sec\n", cpu_time2);
+    printf("execution time of phonebook.free() : %lf sec\n", cpu_time3);
     return 0;
 }

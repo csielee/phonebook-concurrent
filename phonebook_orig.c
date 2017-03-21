@@ -29,17 +29,15 @@ static entry *append(char lastName[], entry *e)
     return e;
 }
 
-static void phonebook_init(void *option)
+static void phonebook_create()
 {
-    if (!option) {
-    }
     entryHead = (entry *) malloc(sizeof(entry));
     entryHead->pNext = NULL;
 }
 
-static entry *phonebook_append(char *s)
+static entry *phonebook_appendByFile(char *fileName)
 {
-    FILE *fp = fopen(s,"r");
+    FILE *fp = fopen(fileName,"r");
     if (!fp) {
         printf("cannot open the file\n");
         return NULL;
@@ -60,9 +58,19 @@ static entry *phonebook_append(char *s)
     return entryHead;
 }
 
-static entry *phonebook_findName(char *s)
+static entry *phonebook_append(char *lastName)
 {
-    return findName(s, entryHead);
+    entry *e = entryHead;
+    while (e->pNext)
+        e = e->pNext;
+    append(lastName, e);
+
+    return entryHead;
+}
+
+static entry *phonebook_findName(char *lastName)
+{
+    return findName(lastName, entryHead);
 }
 
 static void phonebook_free()
@@ -77,7 +85,8 @@ static void phonebook_free()
 
 /* API */
 struct __PHONEBOOK_API Phonebook = {
-    .init = phonebook_init,
+    .create = phonebook_create,
+    .appendByFile = phonebook_appendByFile,
     .append = phonebook_append,
     .findName = phonebook_findName,
     .free = phonebook_free,

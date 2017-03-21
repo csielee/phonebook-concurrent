@@ -100,16 +100,15 @@ static void show_entry(entry *pHead)
     }
 }
 
-static void phonebook_init(void *option)
+static void phonebook_create()
 {
-    if (!option) {
-    }
-    if (text_align("./dictionary/words.txt", ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1)
-        return NULL;
 }
 
-static entry *phonebook_append(char *s)
+static entry *phonebook_appendByFile(char *fileName)
 {
+    if (text_align(fileName, ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1) {
+        perror("ERROR text_align");
+    }
     int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
     file_size = fsize(ALIGN_FILE);
     /* Allocate the resource at first */
@@ -152,9 +151,9 @@ static entry *phonebook_append(char *s)
     return entryHead;
 }
 
-static entry *phonebook_findName(char *s)
+static entry *phonebook_findName(char *lastName)
 {
-    return findName(s, entryHead);
+    return findName(lastName, entryHead);
 }
 
 static void phonebook_free()
@@ -174,8 +173,8 @@ static void phonebook_free()
 
 /* API */
 struct __PHONEBOOK_API Phonebook = {
-    .init = phonebook_init,
-    .append = phonebook_append,
+    .create = phonebook_create,
+    .appendByFile = phonebook_appendByFile,
     .findName = phonebook_findName,
     .free = phonebook_free,
 };

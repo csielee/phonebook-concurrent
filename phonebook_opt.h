@@ -40,9 +40,12 @@ typedef struct _thread_argument {
 
 /* API */
 extern struct __PHONEBOOK_API {
-    void (*init)(void *option);
-    entry *(*append)(char *s);
-    entry *(*findName)(char *s);
+    void (*create)();
+    entry *(*appendByFile)(char *fileName);
+    entry *(*append)(char *lastName);
+    entry *(*removeByFile)(char *fileName);
+    entry *(*remove)(char *lastName);
+    entry *(*findName)(char *lastName);
     void (*free)();
 } Phonebook;
 
