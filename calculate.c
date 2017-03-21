@@ -5,6 +5,7 @@ int main(void)
 {
     FILE *fp = fopen("orig.txt", "r");
     FILE *output = fopen("output.txt", "w");
+    FILE *opt2 = fopen("opt2.txt", "w");
     if (!fp) {
         printf("ERROR opening input file orig.txt\n");
         exit(0);
@@ -46,6 +47,7 @@ int main(void)
         opt_sum_a += opt_a;
         opt_sum_f += opt_f;
         opt_sum_fr += opt_fr;
+        fprintf(opt2, "%d %lf %lf %lf %lf\n" , i+1, opt_i, opt_a, opt_f, opt_fr);
     }
     fprintf(output, "create() %lf %lf\n", orig_sum_i / 100.0,
             opt_sum_i / 100.0);
@@ -56,6 +58,7 @@ int main(void)
     fprintf(output, "free() %lf %lf", orig_sum_fr / 100.0,
             opt_sum_fr / 100.0);
     fclose(output);
+    fclose(opt2);
     fclose(fp);
     return 0;
 }

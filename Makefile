@@ -51,11 +51,12 @@ cache-test: $(EXEC)
 		-e cache-misses,cache-references,instructions,cycles \
 		./phonebook_opt
 
-output.txt: cache-test calculate
+output.txt opt2.txt: cache-test calculate
 	./calculate
 
-plot: output.txt
+plot: output.txt opt2.txt
 	gnuplot scripts/runtime.gp
+	gnuplot scripts/opt_rumtime.gp
 
 calculate: calculate.c
 	$(CC) $(CFLAGS_common) $^ -o $@
