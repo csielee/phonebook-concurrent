@@ -56,7 +56,7 @@ output.txt opt2.txt: cache-test calculate
 
 plot: output.txt opt2.txt
 	gnuplot scripts/runtime.gp
-	gnuplot scripts/opt_rumtime.gp
+	gnuplot scripts/opt_runtime.gp
 
 calculate: calculate.c
 	$(CC) $(CFLAGS_common) $^ -o $@
