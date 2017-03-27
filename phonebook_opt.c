@@ -173,7 +173,7 @@ static entry *phonebook_appendByFile(char *fileName)
 
     for (int i = 1; i < THREAD_NUM; i++) {
         e->pNext = thread_args[i]->lEntry_head->pNext;
-        DEBUG_LOG("Connect %d head string %s %p\n", i,e->pNext->last, thread_args[i]->data_begin);
+        DEBUG_LOG("Connect %d head string %s %p\n", i,e->pNext->lastName, thread_args[i]->data_begin);
 
         e = thread_args[i]->lEntry_tail;
         DEBUG_LOG("Connect %d tail string %s %p\n", i, e->lastName, thread_args[i]->data_begin);
