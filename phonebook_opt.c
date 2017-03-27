@@ -23,6 +23,13 @@
 #define THREAD_NUM 4
 #endif
 
+/* Atomic */
+#define barrier()                 (__sync_synchronize())
+#define AO_GET(ptr)               ({ __typeof__(*(ptr)) volatile *_val = (ptr); barrier(); (*_val); })
+#define AO_SET(ptr, value)        ((void)__sync_lock_test_and_set((ptr), (value)))
+#define AO_ADD_F(ptr, value)      ((__typeof__(*(ptr)))__sync_add_and_fetch((ptr), (value)))
+#define AO_CAS(ptr, comp, value)  ((__typeof__(*(ptr)))__sync_val_compare_and_swap((ptr), (comp), (value)))
+
 static entry *entryHead,*entry_pool;
 static pthread_t threads[THREAD_NUM];
 static thread_arg *thread_args[THREAD_NUM];
@@ -30,19 +37,71 @@ static char *map;
 static off_t file_size;
 
 /* memory pool */
-
-/* lockfree thread pool */
-typedef struct _task {
-    void (*func)(void *);
-    void *arg;
-    struct _task *next, *prev;
-} task_t;
-
+#define MPSIZE 1000
 typedef struct {
-    task_t *head, *tail;
-    int task_number;
-} taskqueue_t;
+    void *next;
+    int index;
+} mp_node_t;
+typedef struct {
+    mp_node_t *head,*curr;
+    size_t mp_size;
+} mp_list_t;
 
+mp_list_t *mp_init(size_t s)
+{
+    mp_list_t *n = malloc(sizeof(mp_list_t));
+    n->head = malloc(sizeof(mp_node_t)+s*MPSIZE);
+    n->head->next = NULL;
+    n->head->index = 0;
+    n->curr = n->head;
+    n->mp_size = s;
+    return n;
+}
+
+void *mp_alloc(mp_list_t *mp)
+{
+    void *r;
+    int tmp;
+    while (1) {
+        /* wait malloc */
+        while (!(r = AO_GET(&mp->curr)));
+        tmp = AO_GET(&((mp_node_t *)r)->index);
+        if (tmp == MPSIZE) {
+            if (AO_CAS(&mp->curr,r,NULL)) {
+                //set
+                mp_node_t *t = malloc(sizeof(mp_node_t)+mp->mp_size*MPSIZE);
+                t->next = mp->head;
+                t->index = 0;
+                mp->head = t;
+                while (AO_CAS(&mp->curr,NULL,t));
+            } else {
+                // no set
+                while (!(r = AO_GET(&mp->curr)));
+            }
+        } else {
+            if (AO_CAS(&((mp_node_t *)r)->index,tmp,tmp+1)!=tmp+1) {
+                //get
+                break;
+            }
+        }
+    }
+    // tmp , r;
+    return (r+sizeof(mp_node_t)+(tmp*mp->mp_size));
+}
+
+void mp_free(mp_list_t *mp)
+{
+    mp_node_t *tmp = mp->head;
+    while (mp->head->next) {
+        mp->head = mp->head->next;
+        free(tmp);
+        tmp = mp->head;
+    }
+    free(mp->head);
+    free(mp);
+}
+
+static mp_list_t *entry_mp;
 
 static entry *findName(char lastname[], entry *pHead)
 {
@@ -90,11 +149,12 @@ static void append(void *arg)
     thread_arg *t_arg = (thread_arg *) arg;
 
     int count = 0;
-    entry *j = t_arg->lEntryPool_begin;
-    for (char *i = t_arg->data_begin; i < t_arg->data_end;
-            j += t_arg->numOfThread, count++) {
+    //entry *j = t_arg->lEntryPool_begin;
+    for (char *i = t_arg->data_begin; i < t_arg->data_end; count++) {
+        //j += t_arg->numOfThread, count++) {
         /* Append the new at the end of the local linked list */
-        t_arg->lEntry_tail->pNext = j;
+        //t_arg->lEntry_tail->pNext = j;
+        t_arg->lEntry_tail->pNext = (entry *)mp_alloc(entry_mp);
         t_arg->lEntry_tail = t_arg->lEntry_tail->pNext;
         t_arg->lEntry_tail->lastName = i;
         while (*i!='\n')
@@ -124,6 +184,7 @@ static void show_entry(entry *pHead)
 
 static void phonebook_create()
 {
+    entry_mp = mp_init(sizeof(entry));
 }
 
 static entry *phonebook_appendByFile(char *fileName)
@@ -135,6 +196,7 @@ static entry *phonebook_appendByFile(char *fileName)
     /* Allocate the resource at first */
     map = mmap(NULL, fd_st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     assert(map && "mmap error");
+
     entry_pool = (entry *) malloc(sizeof(entry) * file_size / MAX_LAST_NAME_SIZE);
     assert(entry_pool && "entry_pool error");
 
@@ -161,8 +223,10 @@ static entry *phonebook_appendByFile(char *fileName)
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_create(&threads[i], NULL, (void *)&append, (void *)thread_args[i]);
 
+
     for (int i = 0; i < THREAD_NUM; i++)
         pthread_join(threads[i], NULL);
+
 
     /* Connect the linked list of each thread */
     entryHead = thread_args[0]->lEntry_head->pNext;
@@ -199,6 +263,7 @@ static void phonebook_free()
     }
 
     free(entry_pool);
+    mp_free(entry_mp);
     for (int i = 0; i < THREAD_NUM; i++)
         free(thread_args[i]);
 
