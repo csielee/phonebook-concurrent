@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time0 = diff_in_second(start, end);
 
+    printf("execution time of phonebook.create() : %lf sec\n", cpu_time0);
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
     /*append lastname with DICT_FILE*/
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
 
     cpu_time1 = diff_in_second(start, end);
 
+    printf("execution time of phonebook.appendByFile() : %lf sec\n", cpu_time1);
     /* Find the given entry */
     /* the givn last name to find */
     char input[MAX_LAST_NAME_SIZE] = "zyxel";
@@ -74,6 +76,7 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time2 = diff_in_second(start, end);
 
+    printf("execution time of phonebook.findName() : %lf sec\n", cpu_time2);
     /* Start timing */
     clock_gettime(CLOCK_REALTIME, &start);
     /* Release memory */
@@ -82,15 +85,12 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_REALTIME, &end);
     cpu_time3 = diff_in_second(start, end);
 
+    printf("execution time of phonebook.free() : %lf sec\n", cpu_time3);
     /* Write the execution time to file. */
     FILE *output;
     output = fopen(OUTPUT_FILE, "a");
     fprintf(output, "%lf %lf %lf %lf\n", cpu_time0, cpu_time1, cpu_time2, cpu_time3);
     fclose(output);
 
-    printf("execution time of phonebook.create() : %lf sec\n", cpu_time0);
-    printf("execution time of phonebook.appendByFile() : %lf sec\n", cpu_time1);
-    printf("execution time of phonebook.findName() : %lf sec\n", cpu_time2);
-    printf("execution time of phonebook.free() : %lf sec\n", cpu_time3);
     return 0;
 }
