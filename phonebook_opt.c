@@ -8,6 +8,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 
 #include "phonebook_opt.h"
 #include "debug.h"
@@ -24,6 +28,21 @@ static pthread_t threads[THREAD_NUM];
 static thread_arg *thread_args[THREAD_NUM];
 static char *map;
 static off_t file_size;
+
+/* memory pool */
+
+/* lockfree thread pool */
+typedef struct _task {
+    void (*func)(void *);
+    void *arg;
+    struct _task *next, *prev;
+} task_t;
+
+typedef struct {
+    task_t *head, *tail;
+    int task_number;
+} taskqueue_t;
+
 
 static entry *findName(char lastname[], entry *pHead)
 {
@@ -73,12 +92,15 @@ static void append(void *arg)
     int count = 0;
     entry *j = t_arg->lEntryPool_begin;
     for (char *i = t_arg->data_begin; i < t_arg->data_end;
-            i += MAX_LAST_NAME_SIZE * t_arg->numOfThread,
             j += t_arg->numOfThread, count++) {
         /* Append the new at the end of the local linked list */
         t_arg->lEntry_tail->pNext = j;
         t_arg->lEntry_tail = t_arg->lEntry_tail->pNext;
         t_arg->lEntry_tail->lastName = i;
+        while (*i!='\n')
+            i++;
+        *i = '\0';
+        i++;
         t_arg->lEntry_tail->pNext = NULL;
         t_arg->lEntry_tail->dtl = NULL;
         DEBUG_LOG("thread %d t_argend string = %s\n",
@@ -106,21 +128,33 @@ static void phonebook_create()
 
 static entry *phonebook_appendByFile(char *fileName)
 {
-    if (text_align(fileName, ALIGN_FILE, MAX_LAST_NAME_SIZE)==-1) {
-        perror("ERROR text_align");
-    }
-    int fd = open(ALIGN_FILE, O_RDONLY | O_NONBLOCK);
+    int fd = open(fileName, O_RDONLY | O_NONBLOCK);
+    struct stat fd_st;
+    fstat(fd,&fd_st);
     file_size = fsize(ALIGN_FILE);
     /* Allocate the resource at first */
-    map = mmap(NULL, file_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    map = mmap(NULL, fd_st.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
     assert(map && "mmap error");
     entry_pool = (entry *) malloc(sizeof(entry) * file_size / MAX_LAST_NAME_SIZE);
     assert(entry_pool && "entry_pool error");
 
+    /* divide text file */
+    int begin[THREAD_NUM+1];
+    begin[THREAD_NUM] = fd_st.st_size;
+    begin[0] = 0;
+    for (int i = 1; i < THREAD_NUM; i++) {
+        begin[i] = (begin[THREAD_NUM]/THREAD_NUM)*i;
+        while (*(map+begin[i])!='\n')
+            begin[i]++;
+
+        begin[i]++;
+    }
+    file_size = fd_st.st_size;
+
     /* Prepare for mutli-threading */
     pthread_setconcurrency(THREAD_NUM + 1);
     for (int i = 0; i < THREAD_NUM; i++)
-        thread_args[i] = createThread_arg(map + MAX_LAST_NAME_SIZE * i,map + file_size, i,THREAD_NUM, entry_pool + i);
+        thread_args[i] = createThread_arg(map + begin[i],map + begin[i+1], i,THREAD_NUM, entry_pool + i);
 
     /* Deliver the jobs to all thread and wait for completing  */
 
